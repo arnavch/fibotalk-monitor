@@ -170,14 +170,6 @@
     "planID": "pp9t-61ro-8w72"
 }
 
-let test1 = {
-    "appname": '14124',
-    "address": {
-        'asfdasdf': 23,
-        "city": null,
-        "m": {}
-    }
-}
 
 
 function schemaMapper(originalSchema) {

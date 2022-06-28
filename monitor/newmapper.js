@@ -212,6 +212,8 @@ function schemaMapper(originalSchema) {
     return schema
 }*/
 
+const { json } = require("body-parser");
+
 
 function eventMapper(object) {
     let mappedKeys = {}
@@ -286,26 +288,42 @@ async function logViolations(client, violations, key, event, queKey) {
 // }
 
 
+// async function violationQue2(client, key, event){
+//     let queSize=20
+//     async function incCurrentNumber(){
+//         return await client.incr(key)
+//     }
+//     async function setEvent(count){
+//         return await client.set(key+':'+count, JSON.stringify(event))
+//     }
+//     function getBottomEvent(curNum){
+//         if(curNum-queSize>0){
+//             return curNum-queSize
+//         }
+//         return false
+//     }
+//     let count= await incCurrentNumber()
+//     let deleteCount=getBottomEvent(count)
+//     if(deleteCount!=false){
+//         await client.delete(key+':'+deleteCount)
+//     }
+//     let result= await setEvent(count)
+// }
+
+
 async function violationQue(client, key, event){
     let queSize=20
-    async function incCurrentNumber(){
-        return await client.incr(key)
+    async function getListSize(){
+        return await client.llen(key)
     }
-    async function setEvent(count){
-        return await client.set(key+':'+count, JSON.stringify(event))
-    }
-    function getBottomEvent(curNum){
-        if(curNum-queSize>0){
-            return curNum-queSize
+    async function setEvent(){
+        if(getListSize()>=queSize){
+            await client.lpop(key)
         }
-        return false
+        await client.rpush(key, JSON.stringify(event))
     }
-    let count= await incCurrentNumber()
-    let deleteCount=getBottomEvent(count)
-    if(deleteCount!=false){
-        await client.delete(key+':'+deleteCount)
-    }
-    let result= await setEvent(count)
+    setEvent()
 }
+
 
 module.exports = { logViolations, eventMapper, logEvent, violationQue};

@@ -250,6 +250,7 @@ function eventMapper(object) {
 }
 
 async function logEvent(client, mappedKeys, key) {
+    await client.incr(key+':count')
     for (let i in mappedKeys) {
         let result = await client.hIncrBy(key, i, 1)
     }
@@ -259,6 +260,7 @@ async function logEvent(client, mappedKeys, key) {
 async function logViolations(client, violations, key, event, queKey) {
     for (let i in violations) {
         violationQue(client, queKey+':'+i, event)
+        await client.incr(key+':'+ i+':count')
         let list = violations[i]
         for(let j in list){
             let newKey=key+':'+list[j]

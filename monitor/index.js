@@ -1,10 +1,9 @@
-const { json } = require('body-parser');
 const express = require('express');
 const redis = require('redis');
 const { monitor } = require("./monitor.js");
 const { logViolations, eventMapper, logEvent } = require("./newmapper.js");
 const { mapper } = require("./mapper.js");
-const { getCurrQuarterTs } = require("../utils/lib.js");
+const { getCurrQuarterTs, syncToS3 } = require("../utils/lib.js");
 
 const client = redis.createClient();
 const app = express();
@@ -12,61 +11,6 @@ const app = express();
 const PORT = 3000;
 
 
-// let s={
-//     "name": "Login event",
-//     "dimensions": {
-//         "appname": {
-//             "name": "appname",
-//             "isNull": "Null Not Allowed",
-//             "required": "Required",
-//             "datatype": "Number",
-//             "keyName": "appname",
-//             "children": {}
-//         },
-//         "address": {
-//             "name": "address",
-//             "isNull": "Null Not Allowed",
-//             "required": "Optional",
-//             "datatype": "Object",
-//             "keyName": "address",
-//             "children": {
-//                 "address.m": {
-//                     "name": "m",
-//                     "isNull": "Null Allowed",
-//                     "required": "Required",
-//                     "datatype": "Object",
-//                     "keyName": "address.m",
-//                     "children": {
-//                       "address.m.mm": {
-//                         "name": "mm",
-//                         "isNull": "Null Allowed",
-//                         "required": "Optional",
-//                         "datatype": "String",
-//                         "keyName": "address.m.mm",
-//                         "children": {}
-//                       }
-//                     }
-//                   },
-//                 "address.city": {
-//                     "name": "city",
-//                     "isNull": "Null Allowed",
-//                     "required": "Optional",
-//                     "datatype": "Array",
-//                     "keyName": "address.city",
-//                     "children": {}
-//                 },
-//                 "address.street": {
-//                     "name": "street",
-//                     "isNull": "Null Not Allowed",
-//                     "required": "Required",
-//                     "datatype": "String",
-//                     "keyName": "address.street",
-//                     "children": {}
-//                 }
-//             }
-//         }
-//     }
-// }
 
 let errorType = Object.freeze({
   0: "requiredKeyDoesNotExist",
@@ -88,9 +32,10 @@ app.get('/', (req, res) => {
 
 
 app.post('/monitor', async (req, res) => {
-  let data = req.body.data;
+  console.log(JSON.stringify(req.body));
+  let data = req.body.dimensions;
   let gid = (req.body.gid)
-  let planId = (req.body.planid)
+  let planId = (req.body.planID || "planID")
   let eventName = null
   let type = req.body.type
   let key = ''
@@ -105,8 +50,8 @@ app.post('/monitor', async (req, res) => {
     key = `${gid}:${planId}:group`
   }
   else if (type == 'event') {
-    endKey=`:event:${eventName}`
     eventName = req.body.name
+    endKey=`:event:${eventName}`
     key = `${gid}:${planId}:event:${eventName}`
   }
   else {
@@ -152,7 +97,7 @@ app.post('/monitor', async (req, res) => {
 
         console.log(violationLog)
         logkey = `violations:` + key + ':' + await getCurrQuarterTs()
-        await logViolations(client, violationLog, logkey)
+        await logViolations(client, violationLog, logkey, data, `violations:` + key + ':events')
         // for(let i in violationLog){
         //   let errMessg=violationLog[i]
         //   await client.lPush(key+`:${i}`, errMessg)
@@ -191,7 +136,15 @@ app.post('/setschema', async (req, res) => {
   res.json(req.body);
 });
 
-
+app.get("/sync", function (req, res) {
+  syncToS3().then(resp => {
+    console.log(resp, "sync to s3 successfully");
+    res.status(200).json({ msg: "success" });
+  }).catch(err => {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  });
+});
 
 // 404 page
 app.use((req, res, next) => {

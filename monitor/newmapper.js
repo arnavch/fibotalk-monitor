@@ -256,11 +256,62 @@ async function logEvent(client, mappedKeys, key) {
     return true
 }
 
-async function logViolations(client, violations, key) {
+async function logViolations(client, violations, key, event, queKey) {
     for (let i in violations) {
+        violationQue(client, queKey+':'+i, event)
         let list = violations[i]
-        let result = await client.hIncrBy(key, i, list.length)
+        for(let j in list){
+            let newKey=key+':'+list[j]
+            let result = await client.hIncrBy(newKey, i, 1)
+            await client.expire(newKey, 35 * 60);
+        }
     }
 }
 
-module.exports = { logViolations, eventMapper, logEvent };
+// async function ViolationQue1(client, key, event){
+//     let queSize=20
+//     async function incCurrentNumber(){
+//         let curNum=await client.incr(key)
+//         if(curNum>=queSize){
+//             await client.set(key, 0)
+//             curNum=0
+//         }
+//         return curNum
+//     }
+//     async function setEvent(count){
+//         return await client.set(key+':'+count, JSON.stringify(event))
+//     }
+//     // function getBottomEvent(curNum){
+//     //     if(curNum/queSize>1){
+//     //         return curNum%queSize
+//     //     }
+//     //     return false
+//     // }
+//     let count= await incCurrentNumber()
+//     let result= await setEvent(count)
+// }
+
+
+async function violationQue(client, key, event){
+    let queSize=20
+    async function incCurrentNumber(){
+        return await client.incr(key)
+    }
+    async function setEvent(count){
+        return await client.set(key+':'+count, JSON.stringify(event))
+    }
+    function getBottomEvent(curNum){
+        if(curNum-queSize>0){
+            return curNum-queSize
+        }
+        return false
+    }
+    let count= await incCurrentNumber()
+    let deleteCount=getBottomEvent(count)
+    if(deleteCount!=false){
+        await client.delete(key+':'+deleteCount)
+    }
+    let result= await setEvent(count)
+}
+
+module.exports = { logViolations, eventMapper, logEvent, violationQue};

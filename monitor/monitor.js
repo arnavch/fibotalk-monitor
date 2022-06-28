@@ -129,7 +129,7 @@ function monitor(schema, eventObj, errorType) {
         //     console.log(arrayType)         
             for(let index in eventObj){
                 if(eventObj[index]==null||returnTypeData(eventObj[index])!=arrayType){
-                    violationHandler(violationLog, 2, path, ' '+returnTypeData(eventObj[index]))
+                    violationHandler(violationLog, 2, path, '.'+returnTypeData(eventObj[index]))
                 }
             }
             if(arrayType=='Object'){
@@ -154,7 +154,7 @@ function monitor(schema, eventObj, errorType) {
                 if (isRequired(schema[key].required) && !keyExists(eventObj, k)) {
                     // console.log(eventObj)
                     // console.log(k)
-                    violationHandler(violationLog, 0, key)
+                    violationHandler(violationLog, 0, key, '')
                 }
 
                 if (keyExists(eventObj, k)) {
@@ -162,7 +162,7 @@ function monitor(schema, eventObj, errorType) {
                         violationHandler(violationLog, 1, key)
                     }
                     else if (eventObj[k] != null && handleArrayType(schema[key]["datatype"]) != returnTypeData(eventObj[k])) {
-                        violationHandler(violationLog, 2, key, ' '+returnTypeData(eventObj[k]))
+                        violationHandler(violationLog, 2, key, '.'+returnTypeData(eventObj[k]))
                     }
                     else if (schema[key]["datatype"] == 'Object') {
                         recurse(schema[key].children, eventObj[k], violationLog, key, false)
@@ -175,7 +175,7 @@ function monitor(schema, eventObj, errorType) {
             for (let k in eventObj) {
                 let key = (path == '') ? k : path + '.' + k
                 if (!keyExists(schema, key)) {
-                    violationHandler(violationLog, 3, key)
+                    violationHandler(violationLog, 3, key, '')
                 }
             }
         }

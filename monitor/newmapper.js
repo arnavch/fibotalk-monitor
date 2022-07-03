@@ -336,6 +336,13 @@ let obj={
     }
 }
 
-console.log(eventMapper(obj))
+
+console.time('codezup')
+
+for(let i=0;i<999;i++){
+eventMapper(obj)
+}
+
+console.timeEnd('codezup')
 
 module.exports = { logViolations, eventMapper, logEvent, violationQue};

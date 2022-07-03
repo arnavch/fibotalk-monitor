@@ -212,8 +212,6 @@ function schemaMapper(originalSchema) {
     return schema
 }*/
 
-const { json } = require("body-parser");
-
 
 function eventMapper(object) {
     let mappedKeys = {}
@@ -223,7 +221,12 @@ function eventMapper(object) {
         if (returnTypeData(curObj) == 'Object') {
             for (let i in curObj) {
                 let key = path == '' ? i : path + '.' + i
-                mappedKeys[key] = returnTypeData(curObj[i])
+                // mappedKeys[key]=mappedKeys[key]||[null, false]
+                // mappedKeys[key][0] = returnTypeData(curObj[i])
+                mappedKeys[key]= returnTypeData(curObj[i])
+                // if(mappedKeys[key]=='null'){
+                //     mappedKeys[key]+=" true"
+                // }
                 if (returnTypeData(curObj[i]) == 'Object' || returnTypeData(curObj[i]) == 'Array') {
                     recurse(curObj[i], key)
                 }
@@ -232,7 +235,7 @@ function eventMapper(object) {
         else if (returnTypeData(curObj) == 'Array') {
             for (let i in curObj) {
                 let key = path == '' ? i : path + '.$'
-                mappedKeys[key] = returnTypeData(curObj[i])
+                mappedKeys[key]= returnTypeData(curObj[i])
                 if (returnTypeData(curObj[i]) == 'Object' || returnTypeData(curObj[i]) == 'Array') {
                     recurse(curObj[i], key)
                 }
@@ -325,5 +328,14 @@ async function violationQue(client, key, event){
     setEvent()
 }
 
+let obj={
+    'asdf':{
+        'adsfdasf':null,
+        'adfdasf':{'asf': 343},
+        'li':['asfdasdf']
+    }
+}
+
+console.log(eventMapper(obj))
 
 module.exports = { logViolations, eventMapper, logEvent, violationQue};
